@@ -2,72 +2,80 @@
 <html>
 <head>
     <title>Registro Asistencia</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <h1>Registro de Asistencia</h1>
+
     <input type="text" id="cuenta" placeholder="Número de cuenta">
     <button onclick="registrar()">Registrar</button>
+
     <p id="mensaje"></p>
 
     <script>
         const firebaseConfig = {
-  apiKey: "AIzaSyAGu508Nz8uTL3vGtzj86S_KDtq4U6cm_k",
-  authDomain: "asistenciasalabecarios.firebaseapp.com",
-  projectId: "asistenciasalabecarios",
-  storageBucket: "asistenciasalabecarios.firebasestorage.app",
-  messagingSenderId: "927102845422",
-  appId: "1:927102845422:web:200527178a110353580eff",
-  measurementId: "G-T76143VR6V"
-};
+            apiKey: "TU_API_KEY",
+            authDomain: "asistenciasalabecarios.firebaseapp.com",
+            projectId: "asistenciasalabecarios",
+            storageBucket: "asistenciasalabecarios.appspot.com",
+            messagingSenderId: "927102845422",
+            appId: "1:927102845422:web:200527178a110353580eff"
+        };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
         async function registrar() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-            const cuenta = document.getElementById('cuenta').value;
-            if (!cuenta || !token) {
-                document.getElementById('mensaje').innerText = 'Faltan datos';
-                return;
-            }
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const cuenta = document.getElementById('cuenta').value.trim();
 
-            // Validar token
-            const configDoc = await db.collection('config').doc('token').get();
-            if (!configDoc.exists || configDoc.data().token !== token) {
-                document.getElementById('mensaje').innerText = 'Token inválido';
-                return;
-            }
+                if (!cuenta || !token) {
+                    document.getElementById('mensaje').innerText = 'Faltan datos';
+                    return;
+                }
 
-            // Buscar sesión abierta
-            const hoy = new Date().toISOString().split('T')[0];
-            const query = db.collection('asistencias')
-                .where('cuenta', '==', cuenta)
-                .where('fecha', '==', hoy)
-                .where('salida', '==', null)
-                .orderBy('entrada', 'desc')
-                .limit(1);
+                const configDoc = await db.collection('config').doc('actual').get();
 
-            const snapshot = await query.get();
-            const ahora = new Date().toISOString();
+                if (!configDoc.exists || configDoc.data().token !== token) {
+                    document.getElementById('mensaje').innerText = 'Token inválido';
+                    return;
+                }
 
-            if (!snapshot.empty) {
-                // Registrar salida
-                const doc = snapshot.docs[0];
-                await doc.ref.update({ salida: ahora });
-                document.getElementById('mensaje').innerText = 'Salida registrada: ' + ahora;
-            } else {
-                // Registrar entrada
-                await db.collection('asistencias').add({
-                    cuenta: cuenta,
-                    entrada: ahora,
-                    salida: null,
-                    fecha: hoy
-                });
-                document.getElementById('mensaje').innerText = 'Entrada registrada: ' + ahora;
+                const hoy = new Date().toISOString().split('T')[0];
+                const ahora = new Date().toISOString();
+
+                const query = db.collection('asistencias')
+                    .where('cuenta', '==', cuenta)
+                    .where('fecha', '==', hoy)
+                    .where('salida', '==', null)
+                    .limit(1);
+
+                const snapshot = await query.get();
+
+                if (!snapshot.empty) {
+                    const doc = snapshot.docs[0];
+                    await doc.ref.update({ salida: ahora });
+                    document.getElementById('mensaje').innerText = 'Salida registrada';
+                } else {
+                    await db.collection('asistencias').add({
+                        cuenta: cuenta,
+                        entrada: ahora,
+                        salida: null,
+                        fecha: hoy
+                    });
+                    document.getElementById('mensaje').innerText = 'Entrada registrada';
+                }
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('mensaje').innerText = 'Error: ' + error.message;
             }
         }
     </script>
 </body>
 </html>
+
