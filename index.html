@@ -46,7 +46,7 @@
                 }
 
                 const hoy = new Date().toISOString().split('T')[0];
-                const ahora = new Date().toISOString();
+                const ahora = new Date();
 
                 const query = db.collection('asistencias')
                     .where('cuenta', '==', cuenta)
